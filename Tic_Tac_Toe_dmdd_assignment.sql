@@ -1,10 +1,10 @@
 set serveroutput on;
-
 create table store_data(
-row_number number,
-colmn_number number,
-loaded_sysmbol char
+loaded_sysmbol varchar2(50),
+rownumbr number,
+colmn_number char
 );
+--drop table store_data;
 
 DECLARE
   pos NUMBER;
@@ -19,6 +19,11 @@ BEGIN
       f char
     )';
  END IF;
+  exception
+  when others then
+  if sqlcode = -955 then
+  dbms_output.put_line('Table already Exists');
+  end if;
 END;
 /
 
@@ -54,29 +59,174 @@ END;
 
 /
 
-Create or Replace Procedure PlayGame(Symbol IN VARCHAR2, Column_Num IN Number, Row_Num IN Number) AS
+
+
+create or replace package silly_p as
+  v number:=0;
+   X number:=0;
+   y number:=0;
+   s number:=0;
+     function check_first return number;
+     
+   function reset_variable_X return number;
+   function reset_variable_v return number;
+ function show_v return number;
+ function show_X return number;
+ Function increment_v return number;
+ Function increment_X return number;
+
+end;
+/
+
+create or replace package body silly_p as
+function show_v return number as   
+begin
+if v!=0 then
+
+       return v;
+       else
+       v:=v+1;
+       return v;
+       end if;
+     end show_v;
+function show_X return number as   
+begin
+      if X!=0 then
+
+       return X;
+       else
+       X:=X+1;
+       return X;
+       end if;
+     end show_X;
+     Function increment_X
+    return Number
+    as
+     begin
+        X := X+1;
+        return X;
+  end increment_X;
+    Function increment_v
+    return Number
+    as
+     begin
+        v := v+1;
+        return v;
+  end increment_v;
+  function reset_variable_X return number
+  as
+  begin
+  v:=0;
+  X:=0;
+ 
+  return X;
+  end reset_variable_X;
+  function reset_variable_v return number
+  as
+  begin
+  v:=0;
+  X:=0;
+ 
+  return v;
+  end reset_variable_v;
+  
+function check_first return number
+as
+begin
+  s:=s+1;
+  return s;
+  dbms_output.put_line('s value is  ='||s); 
+ 
+  end;
+
+  
+  end silly_p;
+   /
+
+CREATE OR REPLACE FUNCTION count_symbol(symbol IN varchar2)
+RETURN number
+IS
+BEGIN
+  RETURN ('SELECT COUNT(*) FROM store_data WHERE loaded_sysmbol= ' || symbol);
+
+ -- RETURN ('SELECT '|| numcol ||' FROM Tic_Tac_Toe WHERE row_ID=' || yvalue);
+END;
+/
+
+
+Create or Replace Procedure PlayGame(Symbol IN char, Column_Num IN Number, Row_Num IN Number) AS
 selected_position Tic_Tac_Toe.c%type;
 colm Char;
-Nxt_Symbol Char;
-New_Symbol char;
+Nxt_Symbol char;
 X_count number;
 O_count number;
-total_count number;
+total_count char;
+
+total_count1 char;
+
+first_count number;
+wrong_turn exception;
+First_Turn exception;
+temp1 varchar2(200);
+temp2 varchar2(200);
 BEGIN
-SELECT Symbol INTO New_Symbol FROM DUAL;
+--SELECT Symbol INTO New_Symbol FROM DUAL;
 SELECT Row_Num INTO x_count FROM DUAL;
 SELECT numToColName(Column_Num) INTO colm FROM DUAL;
-
- EXECUTE IMMEDIATE ('SELECT ' || colm || ' FROM Tic_Tac_Toe WHERE row_ID=' || Row_Num) INTO selected_position;
- if New_Symbol = Nxt_Symbol then
-   
-  dbms_output.put_line('You cannot play this turn, it is nxt players turn');
-  
  
-  elsIF selected_position='_' THEN
+ --first_count:= silly_p.check_first;
+   --dbms_output.put_line( 'First Count is ='||first_count); 
+
+  -- dbms_output.put_line('X count Count is ='||total_count);  
+ --IF Symbol='O' THEN
+--if (first_count ='1')then
+-- raise First_Turn;
+-- end if;
+-- end if;
+  IF Symbol='X' THEN
+     Nxt_Symbol:='O';
+
+--mp1:= (SELECT count (*) FROM store_data WHERE loaded_sysmbol= 'X') ;
+  O_count :=silly_p.show_X;
+   X_count := silly_p.increment_v;
+ 
+  --dbms_output.put_line('X value='||X_count||'V value='|| O_count|| 'First Count is ='||temp1);  
+
+     ELSE
+      Nxt_Symbol:='X';
+    
+    X_count := silly_p.show_v ;
+         O_count := silly_p.increment_X;
+     
+        -- dbms_output.put_line('X value='||X_count||'V value='|| O_count|| 'First Count is ='||total_count1);  
+        
+     END IF;
+      
+         
+if not  X_count <= O_count  then
+raise wrong_turn;
+end if;
+ 
+ EXECUTE IMMEDIATE ('SELECT ' || colm || ' FROM Tic_Tac_Toe WHERE row_ID=' || Row_Num) INTO selected_position;
+
+  IF selected_position='_' THEN
     EXECUTE IMMEDIATE ('UPDATE Tic_Tac_Toe SET ' || colm || '=''' || Symbol || ''' WHERE row_ID=' || Row_Num);
-     dbms_output.put_line('play excetued at'||'colmn = ' || colm|| 'Row_Num ='||Row_Num||' with Symbol= '|| Symbol);
+    dbms_output.put_line('play excetued at'||'colmn = ' || colm|| 'Row_Num ='||Row_Num||' with Symbol= '|| Symbol);
       --EXECUTE IMMEDIATE ('insert into Store_data'||' values('colm', 'x_count', 'New_Symbol')');
+       insert into store_data(
+       
+loaded_sysmbol,
+rownumbr,
+colmn_number
+)
+values
+(
+Symbol,
+Row_Num,
+colm
+
+
+);
      IF Symbol='X' THEN
      Nxt_Symbol:='O';
      
@@ -85,7 +235,7 @@ SELECT numToColName(Column_Num) INTO colm FROM DUAL;
      END IF;
     display_game();
     --New_Symbol:= Symbol;
-    dbms_output.put_line('Around ' || Nxt_Symbol || 'to play : EXECUTE play(''' || Nxt_Symbol || ''', ColumnPos, RowPos);');
+    dbms_output.put_line('Player ' || Nxt_Symbol || ' turn : EXECUTE play(''' || Nxt_Symbol || ''', ColumnPos, RowPos);');
    
    ELSE
     dbms_output.enable(10000);
@@ -93,14 +243,16 @@ SELECT numToColName(Column_Num) INTO colm FROM DUAL;
    
    END IF;
   
-  IF Symbol='X' THEN
-     Nxt_Symbol:='O';
-     
-     ELSE
-      Nxt_Symbol:='X';
-     END IF;
- 
-     SELECT Symbol INTO Nxt_Symbol FROM DUAL;
+        
+  exception
+  when wrong_turn then 
+  total_count:=silly_p.reset_variable_X;
+  total_count1:=silly_p.reset_variable_v;
+  dbms_output.put_line('You cannot play this turn, it is nxt players turn');
+  when First_Turn then
+    dbms_output.put_line('test turn tO NEXT');
+
+
  
 END PlayGame;
 /
@@ -108,8 +260,11 @@ END PlayGame;
 
 
 CREATE OR REPLACE PROCEDURE reset_game AS
+newval number;
+newval1 number;
 ii NUMBER;
 BEGIN
+
   DELETE FROM Tic_Tac_Toe;
   FOR ii in 1..3 LOOP
     INSERT INTO Tic_Tac_Toe VALUES (ii,'_','_','_');
@@ -117,7 +272,10 @@ BEGIN
   END LOOP; 
   dbms_output.enable(10000);
   display_game();
+  newval:=silly_p.reset_variable_X;
+  newval1:=silly_p.reset_variable_v;
   dbms_output.put_line('The game is ready to play : EXECUTE play(''X'', x, y);');
+  
 END;
 /
 
@@ -126,10 +284,12 @@ CREATE OR REPLACE PROCEDURE winner(symbol IN VARCHAR2) AS
 BEGIN
   dbms_output.enable(10000);
   display_game();
+  
   dbms_output.put_line('The player ' || symbol || ' Won !!'); 
   dbms_output.put_line('---------------------------------------');
   dbms_output.put_line('Launch of''a new game...');
   reset_game();
+
 END;
 /
 
@@ -237,12 +397,14 @@ END;
 
 
 
-
+select * from store_data;
+truncate table store_data;
 
 
 EXECUTE reset_game;
+EXECUTE PlayGame('X', 2, 2);
+EXECUTE PlayGame('0', 1, 1);
 EXECUTE PlayGame('X', 1, 3);
---EXECUTE PlayGame('O', 2, 1);
-EXECUTE PlayGame('X', 1, 2);
-EXECUTE PlayGame('O', 2, 3);
-EXECUTE PlayGame('X', 3, 1);
+
+
+EXECUTE PlayGame('X', 3, 2);
